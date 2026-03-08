@@ -93,8 +93,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "referral":
         bot_username = (await context.bot.get_me()).username
         ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
-        await query.
-edit_message_text(f"👥 رابط الدعوة:\n\n🔗 {ref_link}\n\n💰 50 Coins لكل صديق!\n👥 دعوت: {user_data['referrals']} أصدقاء")
+        await query.edit_message_text(f"👥 رابط الدعوة:\n\n🔗 {ref_link}\n\n💰 50 Coins لكل صديق!\n👥 دعوت: {user_data['referrals']} أصدقاء")
 
     elif query.data == "back":
         keyboard = [
@@ -121,5 +120,5 @@ def main():
     print("🤖 البوت شغال!")
     app.run_polling()
 
-if name == "__main__":
+if __name__ == "__main__":
     main()
