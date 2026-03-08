@@ -1,12 +1,10 @@
-FROM n8nio/n8n:latest
+FROM python:3.11-slim
 
-ENV N8N_BASIC_AUTH_ACTIVE=true
-ENV N8N_BASIC_AUTH_USER=admin
-ENV N8N_BASIC_AUTH_PASSWORD=password123
-ENV N8N_HOST=0.0.0.0
-ENV N8N_PORT=5678
-ENV N8N_PROTOCOL=https
+WORKDIR /app
 
-EXPOSE 5678
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-CMD ["n8n", "start"]
+COPY bot.py .
+
+CMD ["python", "bot.py"]
