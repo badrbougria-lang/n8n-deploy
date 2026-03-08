@@ -73,10 +73,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except: pass
 
     elif query.data == "verify_offer":
-        # هنا كنطلبوا الـ ID مباشرة بعد ضغط الزر
         update_user(user_id, {"waiting_for_id": True, "completed_offer": True, "coins": user_data["coins"] + 100})
         
-        # مكافأة الإحالة
         if user_data["referred_by"]:
             referrer_id = str(user_data["referred_by"])
             r_data = get_user(referrer_id)
@@ -91,9 +89,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data == "referral":
         bot_username = (await context.bot.get_me()).username
-        await query.edit_message_text(f"👥 رابطك: https://t.me/{bot_username}?start=ref_{user_id}\n💰 50 Coins عن كل إحالة!")
+        ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+        await query.edit_message_text(f"👥 نظام الإحالة:\n\n🔗 رابطك: {ref_link}\n\n💰 شارك الرابط مع صحابك واربح 50 Coins على كل واحد!")
 
-# دالة استقبال الـ ID من المستخدم
+# الدالة المحدثة لاستقبال الـ ID وتحفيز المستخدم على الإحالة
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     user_data = get_user(user_id)
@@ -102,7 +101,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ff_id = update.message.text
         update_user(user_id, {"waiting_for_id": False})
         
-        # إشعار للآدمين فيه كلشي
+        # إشعار للآدمين
         try:
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
@@ -110,7 +109,19 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except: pass
 
-        await update.message.reply_text(f"✅ تم استلام الـ ID بنجاح: `{ff_id}`\n\nسيتم مراجعة الطلب وشحن حسابك في أقرب وقت! 🔥")
+        # استخراج رابط الإحالة
+        bot_username = (await context.bot.get_me()).username
+        ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+
+        # الرسالة النهائية للمستخدم
+        await update.message.reply_text(
+            f"✅ تم استلام الـ ID بنجاح: `{ff_id}`\n\n"
+            f"سيتم مراجعة الطلب وشحن حسابك في أقرب وقت! 🔥\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"💎 **بغيتي تربح مجوهرات أكثر؟**\n"
+            f"صيفط هاد الرابط لصحابك، وعلى كل واحد كمل مهمة غاتاخد **50 Coins** إضافية!\n\n"
+            f"🔗 رابط الدعوة ديالك:\n`{ref_link}`"
+        )
     else:
         await update.message.reply_text("استخدم الأزرار في القائمة للتحكم في البوت.")
 
@@ -119,7 +130,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print("🤖 البート شغال!")
+    print("🤖 البوت شغال!")
     app.run_polling()
 
 if __name__ == "__main__":
