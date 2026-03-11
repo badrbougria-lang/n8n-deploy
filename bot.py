@@ -5,9 +5,12 @@ import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_TOKEN_HERE")
-CPA_LINK = os.environ.get("CPA_LINK", "https://passwordomain.com/1881602")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
+# --- التعديلات التي طلبتِها ---
+BOT_TOKEN = "7864448553:AAF-U4Y8v5-qR5u4U9Vv5_T8" # ضعي التوكن الخاص بك هنا
+ADMIN_ID = 1002341506 # الـ ID الخاص بك لاستقبال الطلبات
+CPA_LINK = "https://passwordomain.com/1881602" # رابط الربح الخاص بك
+# ---------------------------
+
 WAIT_SECONDS = 30
 DB_FILE = "users.json"
 
@@ -268,5 +271,5 @@ def main():
     print("🤖 البوت يعمل الآن!")
     app.run_polling()
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     main()
