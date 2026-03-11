@@ -1,8 +1,8 @@
-import os
+Import os
 import json
 import logging
 import asyncio
-from datetime import datetime, date
+from datetime import date
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
@@ -102,13 +102,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     await update.message.reply_text(
-        f"🔥 مرحباً بك {user.first_name}!\n\n"
-        f"🎮 بوت FF Rewards الرسمي 💎\n\n"
+        f"🔥 *مرحباً بك {user.first_name}!*\n\n"
+        f"🎮 *بوت FF Rewards الرسمي* 💎\n\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"✅ أكمل مهمة واحدة واحصل على 100 Coins\n"
-        f"👥 ادعُ صديق واربح 50 Coins إضافية\n"
-        f"🎰 سحب يومي مجاني كل 24 ساعة!\n"
-        f"🏆 تنافس مع الآخرين في Leaderboard!\n"
+        f"✅ أكمل مهمة واحدة واحصل على *100 Coins*\n"
+        f"👥 ادعُ صديق واربح *50 Coins* إضافية\n"
+        f"🎰 سحب يومي مجاني كل 24 ساعة\n"
+        f"🏆 تنافس مع الآخرين في Leaderboard\n"
         f"━━━━━━━━━━━━━━━\n\n"
         f"اختر من القائمة أدناه 👇",
         parse_mode="Markdown",
@@ -125,8 +125,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user_data["completed_offer"]:
             rank = get_rank(user_data["coins"])
             await query.edit_message_text(
-                f"✅ أكملت المهمة مسبقاً!\n\n"
-                f"💰 رصيدك: {user_data['coins']} Coins\n"
+                f"✅ *أكملت المهمة مسبقاً!*\n\n"
+                f"💰 رصيدك: *{user_data['coins']} Coins*\n"
                 f"🏅 رتبتك: {rank}\n\n"
                 f"👥 ادعُ أصدقاءك لتربح المزيد!",
                 parse_mode="Markdown",
@@ -143,12 +143,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⏳ جارٍ العد التنازلي...", callback_data="wait")]
         ]
         await query.edit_message_text(
-            f"🎯 خطوة واحدة تفصلك عن الجائزة!\n\n"
+            f"🎯 *خطوة واحدة تفصلك عن الجائزة!*\n\n"
             f"1️⃣ اضغط على الرابط أدناه\n"
             f"2️⃣ أكمل المهمة المطلوبة\n"
             f"3️⃣ انتظر 30 ثانية\n"
-            f"4️⃣ سيظهر زر المكافأة تلقائياً! 🎁\n\n"
-            f"⏱️ بدأ العد التنازلي...",
+            f"4️⃣ سيظهر زر المكافأة تلقائياً\n\n"
+            f"⏱️ *بدأ العد التنازلي...*",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -160,9 +160,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             update_user(user_id, {"timer_active": False})
             try:
                 await query.edit_message_text(
-                    f"⏰ انتهى وقت الانتظار!\n\n"
-                    f"إذا أكملت المهمة، اضغط أدناه 👇\n"
-                    f"💎 100 Coins في انتظارك!",
+                    f"⏰ *انتهى وقت الانتظار!*\n\n"
+                    f"إذا أكملت المهمة اضغط أدناه 👇\n"
+                    f"💎 *100 Coins* في انتظارك!",
                     parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("✅ استلم Coins الآن!", callback_data="verify_offer")]
@@ -198,9 +198,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 await context.bot.send_message(
                     chat_id=int(referrer_id),
-                    text=f"🎉 أكمل صديقك المهمة!\n"
-                         f"💰 ربحت 50 Coins!\n"
-                         f"💎 رصيدك الآن: {r_data['coins'] + 50} Coins",
+                    text=f"🎉 *أكمل صديقك المهمة!*\n"
+                         f"💰 ربحت *50 Coins*\n"
+                         f"💎 رصيدك الآن: *{r_data['coins'] + 50} Coins*",
                     parse_mode="Markdown"
                 )
             except:
@@ -216,11 +216,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         rank = get_rank(new_coins)
         await query.edit_message_text(
-            f"🎉 تهانينا يا بطل!\n\n"
-            f"✅ تمت إضافة 100 Coins لحسابك!\n"
-            f"💰 رصيدك: {new_coins} Coins\n"
+            f"🎉 *تهانينا يا بطل!*\n\n"
+            f"✅ تمت إضافة *100 Coins* لحسابك\n"
+            f"💰 رصيدك: *{new_coins} Coins*\n"
             f"🏅 رتبتك: {rank}\n\n"
-            f"👇 أرسل ID ديال Free Fire ديالك الآن:",
+            f"👇 أرسل *ID ديال Free Fire* ديالك الآن:",
             parse_mode="Markdown"
         )
 
@@ -228,9 +228,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         today = str(date.today())
         if user_data.get("last_daily") == today:
             await query.edit_message_text(
-                f"⏰ سحبت جائزتك اليوم!\n\n"
-                f"🔄 ارجع غداً للسحب مجدداً!\n"
-                f"💰 رصيدك: {user_data['coins']} Coins",
+                f"⏰ *سحبت جائزتك اليوم!*\n\n"
+                f"🔄 ارجع غداً للسحب مجدداً\n"
+                f"💰 رصيدك: *{user_data['coins']} Coins*",
                 parse_mode="Markdown",
                 reply_markup=main_keyboard()
             )
@@ -241,9 +241,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             update_user(user_id, {"coins": new_coins, "last_daily": today})
             rank = get_rank(new_coins)
             await query.edit_message_text(
-                f"🎰 السحب اليومي!\n\n"
-                f"🎊 ربحت اليوم: {reward} Coins!\n"
-                f"💰 رصيدك الآن: {new_coins} Coins\n"
+                f"🎰 *السحب اليومي!*\n\n"
+                f"🎊 ربحت اليوم: *{reward} Coins*\n"
+                f"💰 رصيدك الآن: *{new_coins} Coins*\n"
                 f"🏅 رتبتك: {rank}\n\n"
                 f"🔄 ارجع غداً للسحب مجدداً!",
                 parse_mode="Markdown",
@@ -258,11 +258,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 next_rank = f"{name} ({threshold} Coins)"
                 break
         await query.edit_message_text(
-            f"💰 تفاصيل حسابك:\n\n"
-            f"💎 الرصيد: {user_data['coins']} Coins\n"
+            f"💰 *تفاصيل حسابك:*\n\n"
+            f"💎 الرصيد: *{user_data['coins']} Coins*\n"
             f"🏅 الرتبة: {rank}\n"
-            f"👥 المدعوون: {user_data['referrals']} أصدقاء\n"
-            f"🎁 من الدعوات: {user_data['referrals'] * 50} Coins\n"
+            f"👥 المدعوون: *{user_data['referrals']}* أصدقاء\n"
+            f"🎁 من الدعوات: *{user_data['referrals'] * 50} Coins*\n"
             + (f"⬆️ الرتبة التالية: {next_rank}\n" if next_rank else "👑 أنت في أعلى رتبة!\n"),
             parse_mode="Markdown",
             reply_markup=main_keyboard()
@@ -271,14 +271,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "leaderboard":
         db = load_db()
         sorted_users = sorted(db.items(), key=lambda x: x[1].get("coins", 0), reverse=True)[:10]
-        text = "🏆 قائمة المتصدرين:\n\n"
+        text = "🏆 *قائمة المتصدرين:*\n\n"
         medals = ["🥇", "🥈", "🥉"]
         for i, (uid, udata) in enumerate(sorted_users):
             medal = medals[i] if i < 3 else f"{i+1}."
             name = udata.get("name", "مجهول")
             coins = udata.get("coins", 0)
             rank = get_rank(coins)
-            text += f"{medal} {name} - {coins} Coins {rank}\n"
+            text += f"{medal} *{name}* - {coins} Coins {rank}\n"
         await query.edit_message_text(
             text,
             parse_mode="Markdown",
@@ -289,11 +289,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot_username = (await context.bot.get_me()).username
         ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
         await query.edit_message_text(
-            f"👥 نظام الدعوة:\n\n"
+            f"👥 *نظام الدعوة:*\n\n"
             f"🔗 رابطك الخاص:\n`{ref_link}`\n\n"
-            f"💰 50 Coins لكل صديق يكمل المهمة!\n"
-            f"👥 دعوت حتى الآن: {user_data['referrals']} أصدقاء\n"
-            f"💵 مجموع أرباح الدعوات: {user_data['referrals'] * 50} Coins",
+            f"💰 *50 Coins* لكل صديق يكمل المهمة\n"
+            f"👥 دعوت حتى الآن: *{user_data['referrals']}* أصدقاء\n"
+            f"💵 أرباح الدعوات: *{user_data['referrals'] * 50} Coins*",
             parse_mode="Markdown",
             reply_markup=main_keyboard()
         )
@@ -309,10 +309,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
-                text=f"🎮 طلب شحن جديد!\n"
+                text=f"🎮 *طلب شحن جديد!*\n"
                      f"👤 الاسم: {update.effective_user.first_name}\n"
-                     f"🆔 Telegram: {user_id}\n"
-                     f"🎯 FF ID: {ff_id}",
+                     f"🆔 Telegram: `{user_id}`\n"
+                     f"🎯 FF ID: `{ff_id}`",
                 parse_mode="Markdown"
             )
         except:
@@ -322,10 +322,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
 
         await update.message.reply_text(
-            f"✅ تم استلام ID ديالك: {ff_id}\n\n"
-            f"🔥 سنراجع طلبك ونشحن حسابك قريباً!\n\n"
+            f"✅ *تم استلام ID ديالك:* `{ff_id}`\n\n"
+            f"🔥 سنراجع طلبك ونشحن حسابك قريباً\n\n"
             f"━━━━━━━━━━━━\n"
-            f"💎 بغيتي تربح أكثر؟\n"
+            f"💎 *بغيتي تربح أكثر؟*\n"
             f"شارك رابطك مع أصدقائك:\n`{ref_link}`",
             parse_mode="Markdown",
             reply_markup=main_keyboard()
@@ -344,11 +344,11 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     completed = sum(1 for u in db.values() if u.get("completed_offer"))
     total_coins = sum(u.get("coins", 0) for u in db.values())
     await update.message.reply_text(
-        f"📊 إحصائيات البوت:\n\n"
-        f"👥 المستخدمين: {total}\n"
-        f"✅ أكملوا المهمة: {completed}\n"
-        f"❌ لم يكملوا: {total - completed}\n"
-        f"💰 Coins الموزعة: {total_coins}",
+        f"📊 *إحصائيات البوت:*\n\n"
+        f"👥 المستخدمين: *{total}*\n"
+        f"✅ أكملوا المهمة: *{completed}*\n"
+        f"❌ لم يكملوا: *{total - completed}*\n"
+        f"💰 Coins الموزعة: *{total_coins}*",
         parse_mode="Markdown"
     )
 
@@ -362,4 +362,5 @@ def main():
     print("🤖 البوت شغال!")
     app.run_polling()
 
-if _name_ == "_main_":
+if __name__ == "__main__":
+    main()
