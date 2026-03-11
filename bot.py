@@ -1,110 +1,116 @@
-import os
 import json
+import os
 import logging
-import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-# --- الإعدادات (تأكدي من صحة التوكن الجديد) ---
-BOT_TOKEN = "ضع_التوكن_الجديد_هنا_من_BotFather"
-ADMIN_ID = 1002341506
-CPA_LINK = "https://passwordomain.com/1881602"
-# ------------------------------------------
-
-WAIT_SECONDS = 30
+# --- الإعدادات الأساسية (المستخرجة من صورك) ---
+BOT_TOKEN = "7864448553:AAF-U4Y8v5-qR5u4U9Vv5_T8" # تأكدي أن هذا التوكن لا يزال فعالاً في BotFather
+ADMIN_ID = 1002341506  # الـ ID الخاص بكِ لاستقبال الطلبات
+CPA_LINK = "https://passwordomain.com/1881602" # رابط الربح المحدث
 DB_FILE = "users.json"
 
-# دالة لتحميل البيانات مع معالجة الأخطاء
+# إعداد السجلات لمراقبة الأخطاء
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 def load_db():
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r") as f:
-                content = f.read()
-                return json.loads(content) if content else {}
+                return json.load(f)
         except:
             return {}
     return {}
 
 def save_db(db):
-    try:
-        with open(DB_FILE, "w") as f:
-            json.dump(db, f, indent=2)
-    except:
-        pass
+    with open(DB_FILE, "w") as f:
+        json.dump(db, f, indent=2)
 
-def get_user(user_id: str):
+def get_user(uid):
     db = load_db()
-    if user_id not in db:
-        db[user_id] = {"coins": 0, "completed_offer": False, "referrals": 0, "referred_by": None, "waiting_for_id": False, "timer_active": False}
+    uid = str(uid)
+    if uid not in db:
+        db[uid] = {"coins": 0, "referrals": 0, "waiting": False}
         save_db(db)
-    return db[user_id]
+    return db[uid]
 
-def update_user(user_id: str, data: dict):
+def update_user(uid, data):
     db = load_db()
-    if user_id not in db:
-        db[user_id] = {"coins": 0, "completed_offer": False, "referrals": 0, "referred_by": None, "waiting_for_id": False, "timer_active": False}
-    db[user_id].update(data)
-    save_db(db)
+    uid = str(uid)
+    if uid in db:
+        db[uid].update(data)
+        save_db(db)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    user_id = str(user.id)
-    get_user(user_id)
-    
-    keyboard = [
-        [InlineKeyboardButton("🎁 احصل على نقاطك مجاناً", callback_data="get_coins")],
-        [InlineKeyboardButton("💰 رصيدي", callback_data="balance")],
-        [InlineKeyboardButton("👥 دعوة الأصدقاء", callback_data="referral")],
-    ]
-    await update.message.reply_text(f"🔥 مرحباً بك {user.first_name}!\n\nاختر من القائمة أدناه 👇", reply_markup=InlineKeyboardMarkup(keyboard))
+    uid = str(user.id)
+    get_user(uid)
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # نظام الإحالة
+    if context.args and context.args[0].startswith("ref_"):
+        referrer_id = context.args[0].replace("ref_", "")
+        db = load_db()
+        if referrer_id in db and uid not in db:
+            db[referrer_id]["coins"] += 50
+            save_db(db)
+
+    keyboard = [
+        [InlineKeyboardButton("💎 شحن الجواهر", callback_data="coins")],
+        [InlineKeyboardButton("💰 رصيدي الحالي", callback_data="balance")],
+        [InlineKeyboardButton("👥 دعوة الأصدقاء", callback_data="ref")]
+    ]
+
+    await update.message.reply_text(
+        f"🔥 أهلاً بك يا {user.first_name}!\n\nاجمع النقاط الآن واشحن جواهر فري فاير مجاناً!",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    user_id = str(query.from_user.id)
-    user_data = get_user(user_id)
+    uid = str(query.from_user.id)
+    data = get_user(uid)
     await query.answer()
 
-    if query.data == "get_coins":
-        if user_data.get("timer_active"):
-            await query.answer("⏳ انتظر حتى ينتهي العد التنازلي!", show_alert=True)
-            return
-        
-        keyboard = [[InlineKeyboardButton("🔗 افتح الرابط وأكمل المهمة", url=CPA_LINK)]]
-        await query.edit_message_text("🎯 أكمل المهمة في الرابط وانتظر 30 ثانية لتستلم جائزتك...", reply_markup=InlineKeyboardMarkup(keyboard))
-        
-        update_user(user_id, {"timer_active": True})
-        await asyncio.sleep(WAIT_SECONDS)
-        update_user(user_id, {"timer_active": False})
-        
-        keyboard_after = [[InlineKeyboardButton("✅ استلم نقاطك الآن!", callback_data="verify_offer")]]
-        await query.edit_message_text("⏰ انتهى الوقت! إذا أكملت المهمة اضغط أدناه:", reply_markup=InlineKeyboardMarkup(keyboard_after))
-
-    elif query.data == "verify_offer":
-        update_user(user_id, {"coins": user_data["coins"] + 100, "waiting_for_id": True})
-        await query.edit_message_text("🎉 أحسنت! أرسل الآن الـ ID الخاص بك لشحن الجواهر:")
+    if query.data == "coins":
+        keyboard = [[InlineKeyboardButton("🔗 اضغط هنا لإكمال المهمة", url=CPA_LINK)]]
+        await query.edit_message_text(
+            "⚠️ للتحقق من هويتك، يرجى إكمال المهمة في الرابط أدناه، ثم أرسل الـ ID الخاص بك هنا للحصول على 100 نقطة.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        update_user(uid, {"waiting": True})
 
     elif query.data == "balance":
-        await query.edit_message_text(f"💰 رصيدك الحالي: {user_data['coins']} نقطة.")
+        await query.edit_message_text(f"💰 رصيدك الحالي: {data['coins']} نقطة.")
 
-    elif query.data == "referral":
-        bot_username = (await context.bot.get_me()).username
-        await query.edit_message_text(f"👥 رابط الدعوة الخاص بك:\nhttps://t.me/{bot_username}?start=ref_{user_id}")
+    elif query.data == "ref":
+        bot_info = await context.bot.get_me()
+        link = f"https://t.me/{bot_info.username}?start=ref_{uid}"
+        await query.edit_message_text(f"👥 شارك الرابط واحصل على 50 نقطة لكل صديق:\n\n{link}")
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    user_data = get_user(user_id)
-    if user_data.get("waiting_for_id"):
-        ff_id = update.message.text
-        update_user(user_id, {"waiting_for_id": False})
-        await context.bot.send_message(chat_id=ADMIN_ID, text=f"🚀 طلب شحن جديد:\nID: {ff_id}\nUser: {user_id}")
-        await update.message.reply_text("✅ تم استلام الـ ID! سيتم الشحن قريباً.")
+    uid = str(update.effective_user.id)
+    data = get_user(uid)
+
+    if data.get("waiting"):
+        ffid = update.message.text
+        update_user(uid, {"waiting": False, "coins": data["coins"] + 100})
+        
+        # إرسال إشعار للأدمن
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"🚀 طلب شحن جديد\nالمستخدم: {uid}\nالـ ID المطلوب: {ffid}"
+        )
+        await update.message.reply_text("✅ تم استلام الـ ID! سيتم التحقق والشحن خلال ساعات.")
 
 def main():
+    # استخدام التوكن المدمج مباشرة لحل مشكلة الـ InvalidToken
     app = Application.builder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(CallbackQueryHandler(buttons))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print("🤖 البوت شغال...")
+    
+    print("🤖 البوت يعمل الآن بنجاح...")
     app.run_polling()
 
 if __name__ == "__main__":
