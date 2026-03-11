@@ -6,7 +6,7 @@ from datetime import date
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_TOKEN_HERE")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8642131917:AAFbaWFohwIH3wS6_ob3FKGRfvl_dAksB0")
 CPA_LINK = os.environ.get("CPA_LINK", "https://passwordomain.com/1881602")
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 WAIT_SECONDS = 30
