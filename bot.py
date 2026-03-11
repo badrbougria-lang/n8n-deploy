@@ -4,23 +4,20 @@ import logging
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
-from telegram.error import BadRequest
 
-# الإعدادات
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_TOKEN_HERE")
 CPA_LINK = os.environ.get("CPA_LINK", "https://passwordomain.com/1881602")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "1002341506")) # الرقم ديالك من الصور
-CHANNEL_USERNAME = "@ffrewards_ma" # اسم القناة ديالك
+ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 WAIT_SECONDS = 30
 DB_FILE = "users.json"
 
-# وظائف قاعدة البيانات
 def load_db():
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r") as f:
                 return json.load(f)
-        except: return {}
+        except:
+            return {}
     return {}
 
 def save_db(db):
@@ -30,58 +27,65 @@ def save_db(db):
 def get_user(user_id: str):
     db = load_db()
     if user_id not in db:
-        db[user_id] = {"coins": 0, "completed_offer": False, "referrals": 0, "referred_by": None, "waiting_for_id": False}
+        db[user_id] = {
+            "coins": 0,
+            "completed_offer": False,
+            "referrals": 0,
+            "referred_by": None,
+            "waiting_for_id": False,
+            "timer_active": False
+        }
         save_db(db)
     return db[user_id]
 
 def update_user(user_id: str, data: dict):
     db = load_db()
-    if user_id in db:
-        db[user_id].update(data)
-        save_db(db)
-
-# دالة التحقق من الاشتراك في القناة
-async def is_subscribed(context, user_id):
-    try:
-        member = await context.bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
-        return member.status in ["member", "administrator", "creator"]
-    except BadRequest:
-        return False
-    except Exception:
-        return True # في حالة وقوع خطأ تقني، نخليه يمر
+    if user_id not in db:
+        db[user_id] = {
+            "coins": 0,
+            "completed_offer": False,
+            "referrals": 0,
+            "referred_by": None,
+            "waiting_for_id": False,
+            "timer_active": False
+        }
+    db[user_id].update(data)
+    save_db(db)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = str(user.id)
-    get_user(user_id)
 
-    # التحقق من الإحالة
     if context.args and context.args[0].startswith("ref_"):
         referrer_id = context.args[0].replace("ref_", "")
         user_data = get_user(user_id)
         if user_data["referred_by"] is None and referrer_id != user_id:
             update_user(user_id, {"referred_by": referrer_id})
 
-    # رسالة ترحيب مع التحقق من القناة
-    subscribed = await is_subscribed(context, user.id)
-    
-    if not subscribed:
-        keyboard = [
-            [InlineKeyboardButton("📢 اشترك في القناة أولاً", url=f"https://t.me/{CHANNEL_USERNAME[1:]}")],
-            [InlineKeyboardButton("✅ تم الاشتراك، ابدأ الآن", callback_data="check_sub")]
-        ]
-        await update.message.reply_text(
-            f"⚠️ **عفواً {user.first_name}!**\n\nيجب عليك الاشتراك في قناة البوت الرسمية أولاً لتتمكن من جمع الجوائز.\n\nاشترك ثم اضغط على زر التأكيد 👇",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+    get_user(user_id)
+
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"👤 مستخدم جديد!\nالاسم: {user.first_name}\nالمعرف: {user_id}"
         )
-        return
+    except:
+        pass
 
     keyboard = [
-        [InlineKeyboardButton("🎁 ابدأ واربح Coins", callback_data="get_coins")],
+        [InlineKeyboardButton("🎁 احصل على نقاطك مجاناً", callback_data="get_coins")],
         [InlineKeyboardButton("💰 رصيدي", callback_data="balance")],
-        [InlineKeyboardButton("👥 دعوة أصدقاء", callback_data="referral")],
+        [InlineKeyboardButton("👥 دعوة الأصدقاء", callback_data="referral")],
     ]
-    await update.message.reply_text(f"🔥 مرحباً {user.first_name}!\nأكمل المهمة واحصل على مكافأتك 👇", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        f"🔥 مرحباً بك {user.first_name}!\n\n"
+        f"🎮 بوت FF Rewards الرسمي\n\n"
+        f"✅ أكمل مهمة واحدة فقط واحصل على:\n"
+        f"💎 100 نقطة مجاناً\n"
+        f"👥 50 نقطة لكل صديق تدعوه\n\n"
+        f"اختر من القائمة أدناه 👇",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -89,34 +93,115 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = get_user(user_id)
     await query.answer()
 
-    if query.data == "check_sub":
-        if await is_subscribed(context, query.from_user.id):
-            await query.edit_message_text("✅ شكراً لثقتك! يمكنك الآن البدء:")
-            # عرض القائمة الرئيسية بعد التأكد
-            keyboard = [[InlineKeyboardButton("🎁 ابدأ واربح Coins", callback_data="get_coins")]]
-            await query.message.reply_text("اختر المهمة 👇", reply_markup=InlineKeyboardMarkup(keyboard))
-        else:
-            await query.answer("❌ مازال ما اشتركتيش في القناة!", show_alert=True)
+    if query.data == "get_coins":
+        if user_data["completed_offer"]:
+            await query.edit_message_text(
+                f"✅ لقد أكملت المهمة مسبقاً!\n"
+                f"💰 رصيدك الحالي: {user_data['coins']} نقطة\n\n"
+                f"👥 ادعُ أصدقاءك لتحصل على المزيد!"
+            )
+            return
 
-    elif query.data == "get_coins":
-        keyboard = [[InlineKeyboardButton("🔗 افتح الرابط وأكمل المهمة", url=CPA_LINK)]]
-        await query.edit_message_text("🎯 أكمل المهمة في الرابط، ثم انتظر 30 ثانية ليظهر زر التأكيد 👇", reply_markup=InlineKeyboardMarkup(keyboard))
+        if user_data.get("timer_active"):
+            await query.answer("⏳ المهمة جارية! انتظر ظهور الزر.", show_alert=True)
+            return
+
+        keyboard = [
+            [InlineKeyboardButton("🔗 افتح الرابط وأكمل المهمة", url=CPA_LINK)],
+            [InlineKeyboardButton("⏳ جارٍ العد التنازلي...", callback_data="wait")]
+        ]
+        await query.edit_message_text(
+            f"🎯 خطوة واحدة تفصلك عن الجائزة!\n\n"
+            f"1️⃣ اضغط على الرابط أدناه\n"
+            f"2️⃣ أكمل المهمة المطلوبة\n"
+            f"3️⃣ انتظر 30 ثانية\n"
+            f"4️⃣ سيظهر زر المكافأة تلقائياً!\n\n"
+            f"⏱️ بدأ العد التنازلي...",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+        update_user(user_id, {"timer_active": True})
         await asyncio.sleep(WAIT_SECONDS)
-        keyboard_after = [[InlineKeyboardButton("✅ خذ Coins ديالك!", callback_data="verify_offer")]]
-        try: await query.edit_message_text("⏰ انتهى الوقت! اضغط للتأكيد 👇", reply_markup=InlineKeyboardMarkup(keyboard_after))
-        except: pass
+
+        if not get_user(user_id)["completed_offer"]:
+            update_user(user_id, {"timer_active": False})
+            keyboard_after = [
+                [InlineKeyboardButton("✅ استلم نقاطك الآن!", callback_data="verify_offer")]
+            ]
+            try:
+                await query.edit_message_text(
+                    f"⏰ انتهى وقت الانتظار!\n\n"
+                    f"إذا أكملت المهمة، اضغط على الزر أدناه 👇\n"
+                    f"💎 100 نقطة في انتظارك!",
+                    reply_markup=InlineKeyboardMarkup(keyboard_after)
+                )
+            except:
+                pass
+
+    elif query.data == "wait":
+        await query.answer("⏳ انتظر! سيظهر الزر بعد 30 ثانية.", show_alert=True)
 
     elif query.data == "verify_offer":
-        update_user(user_id, {"waiting_for_id": True, "completed_offer": True, "coins": user_data["coins"] + 100})
-        await query.edit_message_text("🎉 تهانينا! دابا صيفط ID ديال Free Fire ديالك هنا:")
+        user_data = get_user(user_id)
+        if user_data["completed_offer"]:
+            await query.answer("✅ لقد استلمت مكافأتك مسبقاً!", show_alert=True)
+            return
+
+        update_user(user_id, {
+            "completed_offer": True,
+            "coins": user_data["coins"] + 100,
+            "waiting_for_id": True,
+            "timer_active": False
+        })
+
+        if user_data["referred_by"]:
+            referrer_id = str(user_data["referred_by"])
+            r_data = get_user(referrer_id)
+            update_user(referrer_id, {
+                "coins": r_data["coins"] + 50,
+                "referrals": r_data["referrals"] + 1
+            })
+            try:
+                await context.bot.send_message(
+                    chat_id=int(referrer_id),
+                    text=f"🎉 أكمل صديقك المهمة بنجاح!\n"
+                         f"💰 تمت إضافة 50 نقطة إلى رصيدك!\n"
+                         f"💎 رصيدك الحالي: {r_data['coins'] + 50} نقطة"
+                )
+            except:
+                pass
+
+        try:
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=f"✅ مستخدم أكمل المهمة!\nالمعرف: {user_id}\n💰 النقاط: {user_data['coins'] + 100}"
+            )
+        except:
+            pass
+
+        await query.edit_message_text(
+            f"🎉 تهانينا!\n\n"
+            f"✅ تمت إضافة 100 نقطة إلى حسابك!\n\n"
+            f"👇 أرسل معرّفك في Free Fire الآن لنقوم بشحن حسابك:"
+        )
 
     elif query.data == "balance":
-        await query.edit_message_text(f"💰 رصيدك: {user_data['coins']} Coins")
+        await query.edit_message_text(
+            f"💰 تفاصيل رصيدك:\n\n"
+            f"💎 النقاط: {user_data['coins']}\n"
+            f"👥 عدد المدعوين: {user_data['referrals']}\n"
+            f"🎁 نقاط الدعوة: {user_data['referrals'] * 50} نقطة"
+        )
 
     elif query.data == "referral":
         bot_username = (await context.bot.get_me()).username
         ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
-        await query.edit_message_text(f"👥 رابطك: {ref_link}\n💰 50 Coins عن كل إحالة!")
+        await query.edit_message_text(
+            f"👥 نظام الدعوة:\n\n"
+            f"🔗 رابطك الخاص:\n{ref_link}\n\n"
+            f"💰 ستحصل على 50 نقطة لكل صديق يكمل المهمة!\n"
+            f"👥 عدد من دعوتهم: {user_data['referrals']}"
+        )
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
@@ -125,26 +210,63 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_data.get("waiting_for_id"):
         ff_id = update.message.text
         update_user(user_id, {"waiting_for_id": False})
-        
-        # إشعار للآدمين
+
         try:
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
-                text=f"🚀 **طلب شحن جديد!**\n\n👤 المستخدم: {update.effective_user.first_name}\n🆔 Telegram ID: `{user_id}`\n🎮 **Free Fire ID: `{ff_id}`**"
+                text=f"🎮 طلب شحن جديد!\n"
+                     f"👤 الاسم: {update.effective_user.first_name}\n"
+                     f"🆔 تيليغرام: {user_id}\n"
+                     f"🎯 معرف Free Fire: {ff_id}"
             )
-        except: pass
+        except:
+            pass
 
-        await update.message.reply_text(f"✅ تم استلام الـ ID بنجاح! سيتم الشحن قريباً 🔥")
+        bot_username = (await context.bot.get_me()).username
+        ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+
+        await update.message.reply_text(
+            f"✅ تم استلام معرفك بنجاح: {ff_id}\n\n"
+            f"🔥 سنقوم بمراجعة طلبك وشحن حسابك في أقرب وقت!\n\n"
+            f"━━━━━━━━━━━━\n"
+            f"💎 هل تريد المزيد من النقاط؟\n"
+            f"شارك رابطك مع أصدقائك:\n"
+            f"{ref_link}"
+        )
     else:
-        await update.message.reply_text("استخدم القائمة للتحكم في البوت.")
+        keyboard = [
+            [InlineKeyboardButton("🎁 احصل على نقاطك مجاناً", callback_data="get_coins")],
+            [InlineKeyboardButton("💰 رصيدي", callback_data="balance")],
+            [InlineKeyboardButton("👥 دعوة الأصدقاء", callback_data="referral")],
+        ]
+        await update.message.reply_text(
+            "اختر من القائمة أدناه 👇",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    db = load_db()
+    total = len(db)
+    completed = sum(1 for u in db.values() if u.get("completed_offer"))
+    await update.message.reply_text(
+        f"📊 إحصائيات البوت:\n\n"
+        f"👥 إجمالي المستخدمين: {total}\n"
+        f"✅ أكملوا المهمة: {completed}\n"
+        f"❌ لم يكملوا بعد: {total - completed}\n"
+        f"💰 إجمالي النقاط الموزعة: {completed * 100}"
+    )
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("stats", admin_stats))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print("🤖 البوت شغال مع نظام القناة!")
+    print("🤖 البوت يعمل الآن!")
     app.run_polling()
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     main()
